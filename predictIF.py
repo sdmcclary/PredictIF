@@ -83,7 +83,7 @@ test_code = "x = 10\n<extra_id_0> x > 5:\n    print('Greater than 5')\nelse:\n  
 input_ids = tokenizer(test_code, return_tensors="pt").input_ids.to("cuda")
 
 # Generate prediction
-output_ids = model.generate(input_ids,do_sample=True)
+output_ids = model.generate(input_ids,do_sample=True,max_new_tokens=50,forced_bos_token_id=tokenizer.encode("if", add_special_tokens=False)[0])
 output = tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
 print("Masked Code:", test_code)
