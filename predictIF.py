@@ -8,7 +8,7 @@ from transformers import (
 )
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
+import re
 # 1. Load a Public Dataset (CodeSearchNet - Python subset)
 dataset = load_dataset("code_search_net", "python", split="train[:1%]")  # Using a small subset for testing
 print(dataset[0])
@@ -19,9 +19,10 @@ tokenizer = AutoTokenizer.from_pretrained("Salesforce/codet5-small")
 print(tokenizer.encode("<extra_id_0>"))
 # Custom masking function: Replace 'if' statements with <extra_id_0>
 def mask_if_statements(examples):
-    masked_code = [code.replace('if', '<extra_id_0>') for code in examples['func_code_string']]
+    pattern = re.compile(r"if\s+.*:\n(\s+.*\n)*")
+    # Replace matched 'if' blocks with <extra_id_0>
+    masked_code = [pattern.sub("<extra_id_0>\n", code) for code in examples['func_code_string']]
     return {"input_text": masked_code, "target_text": examples['func_code_string']}
-
 # Apply masking to create input-output pairs for T5
 masked_dataset = dataset.map(mask_if_statements, batched=True)
 
@@ -79,7 +80,7 @@ print("Evaluation Results:", eval_results)
 
 # 5. Test Example
 # Use the trained model to predict 'if' statements in a sample code snippet
-test_code = "x = 10\n<extra_id_0> x > 5:\n    print('Greater than 5')\nelse:\n    print('5 or less')"
+test_code = "x = 10 \n <extra_id_0>: \n print('Greater than 5')\nelse:\n    print('5 or less')"
 input_ids = tokenizer(test_code, return_tensors="pt").input_ids.to("cuda")
 
 # Generate prediction
